@@ -289,6 +289,8 @@ struct DatArchive {
     const Scope* env;
     /// Names the walk treats specially.
     int32_t name_index, name_command;
+    /// The roots dat_load_roots() found for this archive, if any.
+    const DatFileRoots* file;
     Arena arena;
 };
 
@@ -2488,6 +2490,32 @@ void* dat_public(DatArchive* a, const char* name, int32_t type)
     return NULL;
 }
 
+int32_t dat_type_by_name(const DatSchema* s, const char* name)
+{
+    for (uint32_t i = 1; i < s->ntypes; i++) {
+        if (s->types[i] != NULL && s->types[i]->name != NULL &&
+            strcmp(s->types[i]->name, name) == 0)
+        {
+            return (int32_t) i;
+        }
+    }
+    return DAT_NONE;
+}
+
+void* dat_public_root(DatArchive* a, const char* name)
+{
+    if (a->file == NULL) {
+        return NULL;
+    }
+    for (uint32_t j = 0; j < a->file->nroots; j++) {
+        const DatRoot* root = &a->file->roots[j];
+        if (!root->alias && strcmp(root->name, name) == 0) {
+            return dat_public(a, name, root->type);
+        }
+    }
+    return NULL;
+}
+
 int dat_load_roots(DatArchive* a, const char* file, uint32_t index)
 {
     const DatFileRoots* f = NULL;
@@ -2505,6 +2533,7 @@ int dat_load_roots(DatArchive* a, const char* file, uint32_t index)
     if (f == NULL) {
         return 0;
     }
+    a->file = f;
     int found = 0;
     /* Public symbols in the archive's order, then aliases */
     for (uint32_t i = 0; i < a->npublics; i++) {

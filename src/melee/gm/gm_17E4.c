@@ -311,7 +311,7 @@ typedef struct {
     u8 b7 : 1, b6 : 1, b5 : 1, b4 : 1, b3 : 1, b2 : 1, b1 : 1, b0 : 1;
 } u8_bits;
 
-void fn_8017E8A4(int arg0_int)
+void fn_8017E8A4(intptr_t arg0_int)
 {
     MatchEnd* arg0 = (MatchEnd*) arg0_int;
     VsSceneController* gm = gmVs_GetSceneController();

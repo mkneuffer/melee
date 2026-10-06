@@ -124,7 +124,7 @@ void mnDataDel_8024E940(void)
     f32 tmp2;
     f32 temp_f31;
     s32* data;
-    s32 temp_ret;
+    saddr_t temp_ret;
     struct MnDataDelGObjUserData* temp_r31;
     int i;
     s32 var_r30;
@@ -180,7 +180,7 @@ void mnDataDel_8024EA6C(void)
     u32* data;
     enum_t lang;
     int i;
-    s32 temp_ret;
+    saddr_t temp_ret;
     u8 pad[0x8];
     HSD_JObj* sp18;
     PAD_STACK(0x10);
@@ -454,7 +454,7 @@ void fn_8024F318(HSD_GObj* gobj)
     HSD_Text* text;
     f32 tmp2;
     f32 frame;
-    s32 temp_ret;
+    saddr_t temp_ret;
     s32 sis_id;
     u32 buttons;
     u8 cursor;
@@ -761,8 +761,8 @@ void fn_8024FBA4(HSD_GObj* gobj)
     }
 }
 
-static inline HSD_JObj* fn_8024FC48_inline(int arg0);
-static inline HSD_JObj* fn_8024FC48_inline(int arg0)
+static inline HSD_JObj* fn_8024FC48_inline(intptr_t arg0);
+static inline HSD_JObj* fn_8024FC48_inline(intptr_t arg0)
 {
     return (HSD_JObj*) arg0;
 }

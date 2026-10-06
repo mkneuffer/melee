@@ -1,5 +1,9 @@
 #include "displayfunc.h"
 
+#ifdef TARGET_PC
+#include <port/port_internal.h>
+#endif
+
 #include <string.h>
 
 #include "cobj.h"
@@ -576,6 +580,12 @@ void HSD_EraseRect(f32 top, f32 bottom, f32 left, f32 right, f32 z,
     GXSetVtxDesc(GX_VA_TEX0, GX_DIRECT);
 
     color = erase_color;
+#ifdef TARGET_PC
+    // An eye pass erases to the key the host shows the room through
+    if (port_pass_current() != PORT_PASS_FLAT) {
+        color = (GXColor) { PORT_KEY_R, PORT_KEY_G, PORT_KEY_B, 0 };
+    }
+#endif
     GXBegin(GX_QUADS, GX_VTXFMT0, 4);
     GXPosition3f32(left, top, z);
     GXColor4u8(color.r, color.g, color.b, color.a);

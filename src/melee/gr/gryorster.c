@@ -215,7 +215,7 @@ void grYorster_802022A4(HSD_GObj* gobj)
 void grYorster_80202428(HSD_GObj* item_gobj, Ground* gp, Vec3* pos,
                         HSD_GObj* fighter_gobj, f32 value)
 {
-    Ground* gp2 = (Ground*) ((s32) gp + 0);
+    Ground* gp2 = (Ground*) ((saddr_t) gp + 0);
     int i;
 
     if (ftLib_IsFighter(fighter_gobj)) {

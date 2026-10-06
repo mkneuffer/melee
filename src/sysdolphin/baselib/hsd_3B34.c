@@ -791,7 +791,7 @@ struct hsd_803B51C8_inline_state {
 };
 
 static inline s32
-hsd_803B51C8_inline(s32 image, s32 image_height, s32 image_width,
+hsd_803B51C8_inline(saddr_t image, s32 image_height, s32 image_width,
                     const char* output, s32 output_capacity,
                     const JpegMetadata* metadata, JpegComment* comment,
                     JpegHuffDc* huff_dc_luma, JpegHuffDc* huff_dc_chroma,
@@ -1054,7 +1054,7 @@ hsd_803B51C8_inline(s32 image, s32 image_height, s32 image_width,
     return hsd_804D79A0 - hsd_804D79A4;
 }
 
-s32 hsd_803B51C8(s32 arg0, s32 arg1, s32 arg2, char* arg3, s32 arg4)
+s32 hsd_803B51C8(saddr_t arg0, s32 arg1, s32 arg2, char* arg3, s32 arg4)
 {
     JpegComment comment;
     JpegHuffDc huff_dc_luma;

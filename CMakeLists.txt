@@ -14,8 +14,14 @@ include(GNUInstallDirs)
 
 option(MELEE_DWARF "Emit DWARF describing the original type layouts" OFF)
 option(MELEE_DAT_SAMPLES "Sample the .dat archives' types for objdiff (needs MELEE_DWARF)" OFF)
+option(MELEE_PORT "Build the native port: the game, Aurora and the visionOS app" OFF)
 
-include(cmake/MeleeConfig.cmake)
+if(MELEE_PORT)
+    # Before MeleeConfig: it builds the game against the Aurora this fetches
+    include(cmake/Port.cmake)
+else()
+    include(cmake/MeleeConfig.cmake)
+endif()
 
 if(MELEE_DWARF)
     include(cmake/Dwarf.cmake)
@@ -25,4 +31,6 @@ if(MELEE_DAT_SAMPLES)
     include(cmake/Dat.cmake)
 endif()
 
-install(TARGETS melee LIBRARY DESTINATION "${CMAKE_INSTALL_LIBDIR}")
+if(NOT MELEE_PORT)
+    install(TARGETS melee LIBRARY DESTINATION "${CMAKE_INSTALL_LIBDIR}")
+endif()

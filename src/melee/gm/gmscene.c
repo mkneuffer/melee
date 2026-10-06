@@ -1,5 +1,9 @@
 #include "gmscene.h"
 
+#ifdef TARGET_PC
+#include <port/port_internal.h>
+#endif
+
 #include "gm_1A36.h"
 #include "gm_unsplit.h"
 #include "gmmain_lib.h"
@@ -291,6 +295,9 @@ void gm_801A4D34(void (*on_frame)(void), UNUSED GameSceneInfo* info)
 
         while ((pad_queue_count = lb_80019894()) == 0) {
             lb_800195D0();
+#ifdef TARGET_PC
+            port_frame_idle();
+#endif
         }
         lb_800195D0();
 
@@ -367,10 +374,25 @@ void gm_801A4D34(void (*on_frame)(void), UNUSED GameSceneInfo* info)
         }
 
         lb_800195D0();
+#ifdef TARGET_PC
+        // In spatial mode, draw once per eye, then the HUD (port_spatial.c)
+        {
+            PortPass pass;
+            for (pass = port_pass_begin(); pass != PORT_PASS_DONE;
+                 pass = port_pass_next())
+            {
+                GXInvalidateVtxCache();
+                GXInvalidateTexAll();
+                HSD_StartRender(HSD_RP_SCREEN);
+                HSD_GObj_80390FC0();
+            }
+        }
+#else
         GXInvalidateVtxCache();
         GXInvalidateTexAll();
         HSD_StartRender(HSD_RP_SCREEN);
         HSD_GObj_80390FC0();
+#endif
         HSD_Init_803755A8();
         HSD_PerfSetDrawTime();
         HSD_VICopyXFBAsync(HSD_RP_SCREEN);

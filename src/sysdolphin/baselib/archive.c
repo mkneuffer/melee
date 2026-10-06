@@ -4,6 +4,43 @@
 
 #include <dolphin/os.h>
 
+#ifdef TARGET_PC
+#include <port/port_internal.h>
+
+s32 HSD_ArchiveParse(HSD_Archive* archive, u8* src, size_t file_size)
+{
+    if (archive == NULL) {
+        return -1;
+    }
+    memset(archive, 0, sizeof(HSD_Archive));
+    archive->flags |= 1;
+    return port_dat_parse(archive, src, file_size);
+}
+
+void* HSD_ArchiveGetPublicAddress(HSD_Archive* archive, const char* symbols)
+{
+    return port_dat_public(archive, symbols, NULL);
+}
+
+void* HSD_ArchiveGetPublicAddressAs(HSD_Archive* archive, const char* symbols,
+                                    const char* type_name)
+{
+    return port_dat_public(archive, symbols, type_name);
+}
+
+char* HSD_ArchiveGetExtern(HSD_Archive* archive, int index)
+{
+    return port_dat_extern(archive, index);
+}
+
+void HSD_ArchiveLocateExtern(HSD_Archive* archive, const char* symbols,
+                             void* addr)
+{
+    port_dat_locate_extern(archive, symbols, addr);
+}
+
+#else
+
 static inline void Locate(HSD_Archive* archive)
 {
     u32 i;
@@ -117,3 +154,5 @@ void HSD_ArchiveLocateExtern(HSD_Archive* archive, const char* symbols,
         offset = next;
     }
 }
+
+#endif

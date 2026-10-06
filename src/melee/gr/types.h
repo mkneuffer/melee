@@ -999,13 +999,13 @@ struct grZebes_GroundVars4 {
     /* +08 gp+CC */ f32 xCC;
     /* +0C gp+D0 */ f32 xD0;
     /* +10 gp+D4 */ f32 xD4;
-    /* +14 gp+D8 */ u32 xD8;
-    /* +18 gp+DC */ u32 xDC;
-    /* +1C gp+E0 */ u32 xE0;
+    /* +14 gp+D8 */ uaddr_t xD8;
+    /* +18 gp+DC */ uaddr_t xDC;
+    /* +1C gp+E0 */ uaddr_t xE0;
     /* +20 gp+E4 */ s16 xE4;
     /* +22 gp+E6 */ s16 xE6;
     /* +24 gp+E8 */ s32 xE8;
-    /* +28 gp+EC */ u32 xEC;
+    /* +28 gp+EC */ uaddr_t xEC;
 };
 
 struct grZebes_GroundVars5 {
@@ -1021,13 +1021,18 @@ struct grZebes_GroundVars5 {
     /* +20 gp+E4 */ u32 xE4;
     /* +24 gp+E8 */ s16 xE8;
     /* +26 gp+EA */ s16 xEA;
+#ifdef TARGET_PC
+    // grZebes_801D8644 overlays a grZe_AcidState on xC8, which grows with
+    // 64-bit pointers; keep xEC onward clear of it
+    u8 pc_pad_acid[20];
+#endif
     /* +28 gp+EC */ u32 xEC;
-    /* +2C gp+F0 */ u32 xF0;
+    /* +2C gp+F0 */ uaddr_t xF0;
     /* +30 gp+F4 */ s16 xF4;
     /* +32 gp+F6 */ s16 xF6;
     /* +34 gp+F8 */ u32 xF8;
-    /* +38 gp+FC */ u32 xFC;
-    /* +3C gp+100 */ u32 x100;
+    /* +38 gp+FC */ uaddr_t xFC;
+    /* +3C gp+100 */ uaddr_t x100;
 };
 
 struct grRCruise_Entry {
@@ -1540,7 +1545,7 @@ struct grCastle_GroundVars7 {
     /* +00 gp+C4 */ s16 xC4;
     /* +02 gp+C6 */ u8 pad_xC6[0xA];
     /* +0C gp+D0 */ HSD_GObj* xD0;
-    /* +10 gp+D4 */ u32 xD4;
+    /* +10 gp+D4 */ uaddr_t xD4;
     /* +14 gp+D8 */ s32 xD8;
 };
 
@@ -1564,7 +1569,7 @@ struct grCastle_GroundVars10 {
     /* +0C gp+D0 */ HSD_JObj* jobjs[5];
     /* +20 gp+E4 */ HSD_JObj* effect_a[5];
     /* +34 gp+F8 */ HSD_JObj* effect_b[5];
-    /* +48 gp+10C */ u32 x10C[5];
+    /* +48 gp+10C */ uaddr_t x10C[5];
     /* +5C gp+120 */ s32 x120[5];
     /* +70 gp+134 */ u8 state[5];
     /* +75 gp+139 */ u8 idx[5];
@@ -1586,10 +1591,10 @@ struct grCastle_GroundVars11 {
     /* +01 gp+C5 */ u8 pad_01[3];
     /* +04 gp+C8 */ s16 xC8;
     /* +06 gp+CA */ s16 xCA;
-    /* +08 gp+CC */ u32 xCC;
-    /* +0C gp+D0 */ u32 xD0;
-    /* +10 gp+D4 */ u32 xD4;
-    /* +14 gp+D8 */ u32 xD8;
+    /* +08 gp+CC */ uaddr_t xCC;
+    /* +0C gp+D0 */ uaddr_t xD0;
+    /* +10 gp+D4 */ uaddr_t xD4;
+    /* +14 gp+D8 */ uaddr_t xD8;
 };
 
 struct grPura_GroundVars {
@@ -1628,7 +1633,7 @@ struct grShrineroute_GroundVars {
     /*  +A gp+CE */ u16 xCE;
     /*  +C gp+D0 */ u16 xD0;
     u8 _pad[0xD4 - 0xD2];
-    /* +10 gp+D4 */ u32 xD4;
+    /* +10 gp+D4 */ uaddr_t xD4;
     /* +14 gp+D8 */ struct grShrineroute_GroundVars_platforms {
         /* +0 */ Vec3 offset;
         /* +C */ HSD_JObj* jobj;
@@ -1719,8 +1724,8 @@ struct grHomeRun_GroundVars {
 struct grHomeRun_GroundVars2 {
     /* +00 gp+C4 */ u16 xC4;
     /* +02 gp+C6 */ u16 xC6;
-    /* +04 gp+C8 */ int xC8;
-    /* +08 gp+CC */ int xCC;
+    /* +04 gp+C8 */ intptr_t xC8;
+    /* +08 gp+CC */ intptr_t xCC;
     /* +0C gp+D0 */ float xD0;
 };
 

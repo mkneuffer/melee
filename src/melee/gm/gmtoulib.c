@@ -2421,9 +2421,9 @@ void fn_8019027C(UNK_T lights)
 }
 
 /// Initializes SIS library text rendering for tournament mode.
-void fn_801902F0(int sis_param)
+void fn_801902F0(intptr_t sis_param)
 {
-    s32 value;
+    saddr_t value;
     PAD_STACK(8);
 
     value = sis_param;

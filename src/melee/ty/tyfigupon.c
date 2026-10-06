@@ -1181,7 +1181,7 @@ void _tyFigupon_8031753C(void)
     if (panel.joint != NULL) {
         TyFiguponDigitInit digits_s;
         s32 total;
-        ef4->x00 = (u32) GObj_Create(9, 9, 0);
+        ef4->x00 = (uaddr_t) GObj_Create(9, 9, 0);
         jobj = HSD_JObjLoadJoint(panel.joint);
         HSD_GObjObject_80390A70((HSD_GObj*) ef4->x00, temp = HSD_GObj_JObjKind,
                                 jobj);
@@ -1252,7 +1252,7 @@ void _tyFigupon_8031753C(void)
 
         joint = HSD_ArchiveGetPublicAs(HSD_Joint, ef4->archive,
                                        "ToyFigurePonLever_Top_joint");
-        ef4->x08 = (u32) GObj_Create(9, 9, 0);
+        ef4->x08 = (uaddr_t) GObj_Create(9, 9, 0);
         jobj = HSD_JObjLoadJoint(joint);
         HSD_GObjObject_80390A70((HSD_GObj*) ef4->x08, temp = HSD_GObj_JObjKind,
                                 jobj);
@@ -1270,7 +1270,7 @@ void _tyFigupon_8031753C(void)
         }
         HSD_JObjAnimAll(ef4->jobjs[0xE]);
 
-        ef4->x0C = (u32) GObj_Create(9, 9, 0);
+        ef4->x0C = (uaddr_t) GObj_Create(9, 9, 0);
         par_joint = HSD_ArchiveGetPublicAs(HSD_Joint, ef4->archive,
                                            "ToyFigurePonPar_Top_joint");
         for (count = 0; count < 3; count++) {
@@ -1474,7 +1474,7 @@ void tyFigupon_Scene_OnEnter(void* arg0)
                                                   "ScMenFigure_scene_lights");
         if (temp != NULL) {
             HSD_LObj* lobj;
-            ed4->x0 = (u32) GObj_Create(2, 3, 0);
+            ed4->x0 = (uaddr_t) GObj_Create(2, 3, 0);
             lobj = Toy_LoadLObjList(temp, 0);
             HSD_GObjObject_80390A70((HSD_GObj*) ed4->x0,
                                     kind = HSD_GObj_LightKind, lobj);
@@ -1557,7 +1557,7 @@ s32 _tyFigupon_803181BC(void)
         HSD_GObjProc_RemoveAllProcs(temp_r31->x0);
         temp_r31->x0 = NULL;
     }
-    if ((u32) temp_r31->x4 != 0U) {
+    if ((uaddr_t) temp_r31->x4 != 0U) {
         temp_r31->x4 = 0;
     }
     if (temp_r31->x8 != NULL) {

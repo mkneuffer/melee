@@ -1480,7 +1480,7 @@ void fn_801935B8(void)
     table = &lbl_803D9F80;
     tm = gm_GetTournamentData();
     fn_8018FBE0(0, 0, 0, 5, 5, 0x3e7, 3);
-    fn_801902F0((s32) fn_80190174(lbl_804D664C->cameras->desc));
+    fn_801902F0((saddr_t) fn_80190174(lbl_804D664C->cameras->desc));
     fn_80193308();
     fn_8019027C(lbl_804D664C->lights);
     fn_8019035C(0, lbl_804D664C->models[5], 0, 0x1A, 2, 1, fn_801910E0, 0.0f);

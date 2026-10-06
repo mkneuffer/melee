@@ -134,7 +134,7 @@ struct ToyGlobalsS_ {
 };
 
 struct TyFiguponED4 {
-    /* 0x00 */ u32 x0;
+    /* 0x00 */ uaddr_t x0;
     /* 0x04 */ u32 x4;
     /* 0x08 */ u8 pad_08[0x4];
     /* 0x0C */ u32 xC;

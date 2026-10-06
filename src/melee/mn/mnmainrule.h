@@ -43,7 +43,7 @@ struct mn_80231634_t {
 /* 2309F0 */ void fn_802309F0(HSD_GObj*);
 /* 230D18 */ s32 mn_80230D18(struct mn_802307F8_t*, HSD_JObj*, int);
 /* 230E38 */ HSD_GObj* mn_80230E38(int);
-/* 231634 */ int mn_80231634(struct mn_80231634_t*);
+/* 231634 */ intptr_t mn_80231634(struct mn_80231634_t*);
 /* 23164C */ void mn_8023164C(void);
 /* 231714 */ void mn_80231714(void);
 /* 2317E4 */ void mn_802317E4(HSD_Archive*, int);

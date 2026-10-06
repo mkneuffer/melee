@@ -17,20 +17,23 @@ project(dat_native C)
 
 get_filename_component(MELEE_ROOT "${CMAKE_CURRENT_LIST_DIR}/../../.." ABSOLUTE)
 
-# The game's headers as the port builds them (see cmake/MeleeConfig.cmake)
-if(DEFINED ENV{AURORA_SRC})
-    set(AURORA_SRC "$ENV{AURORA_SRC}" CACHE PATH "Aurora's source" FORCE)
+# The game's headers as the port builds them (see cmake/MeleeConfig.cmake);
+# the port's own build (cmake/Port.cmake) has them already
+if(NOT TARGET melee_game_headers)
+    if(DEFINED ENV{AURORA_SRC})
+        set(AURORA_SRC "$ENV{AURORA_SRC}" CACHE PATH "Aurora's source" FORCE)
+    endif()
+    if(NOT AURORA_SRC)
+        message(FATAL_ERROR "AURORA_SRC is not set: configure from the native dev shell")
+    endif()
+    add_library(melee_game_headers INTERFACE)
+    target_include_directories(melee_game_headers INTERFACE
+        ${AURORA_SRC}/include
+        ${MELEE_ROOT}/src
+        ${MELEE_ROOT}/libs/doldecomp/include
+    )
+    target_compile_definitions(melee_game_headers INTERFACE TARGET_PC bool=int)
 endif()
-if(NOT AURORA_SRC)
-    message(FATAL_ERROR "AURORA_SRC is not set: configure from the native dev shell")
-endif()
-add_library(melee_game_headers INTERFACE)
-target_include_directories(melee_game_headers INTERFACE
-    ${AURORA_SRC}/include
-    ${MELEE_ROOT}/src
-    ${MELEE_ROOT}/libs/doldecomp/include
-)
-target_compile_definitions(melee_game_headers INTERFACE TARGET_PC bool=int)
 
 set(MELEE_VERSION GALE01 CACHE STRING "Game version")
 set(MELEE_VERSION_NUM 0 CACHE STRING "BUILD_VERSION for MELEE_VERSION")
@@ -106,6 +109,12 @@ target_compile_definitions(dat_melee PRIVATE
 # bool=int
 set_target_properties(dat_melee PROPERTIES C_STANDARD 23 C_EXTENSIONS ON)
 target_compile_options(dat_melee PRIVATE -w)
+
+# The tests run on the host, against the game's files: not when the port
+# builds the library for a device
+if(NOT PROJECT_IS_TOP_LEVEL)
+    return()
+endif()
 
 enable_testing()
 

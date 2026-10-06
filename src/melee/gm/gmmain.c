@@ -127,6 +127,11 @@ static void init_spr_unk(void)
 void __eabi(void) {}
 #endif
 
+#ifdef TARGET_PC
+/// The port's host has its own main; port_run() calls this.
+#define main melee_main
+#endif
+
 int main(void)
 {
     char* unused_format_string = "Data %lx\n";
@@ -136,7 +141,11 @@ int main(void)
     VIInit();
     DVDInit();
     PADInit();
+#ifdef TARGET_PC
+    CARDInit("GALE", "01");
+#else
     CARDInit();
+#endif
     OSInitAlarm();
     db_GetGameLaunchButtonState();
     gmMain_8015FDA4();

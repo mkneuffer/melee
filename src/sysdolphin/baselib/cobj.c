@@ -17,6 +17,10 @@
 #include <dolphin/mtx.h>
 #include <dolphin/vi.h> // IWYU pragma: keep
 
+#ifdef TARGET_PC
+#include <port/port_internal.h>
+#endif
+
 static HSD_ClassInfo* default_class;
 static HSD_CObj* current;
 
@@ -478,6 +482,41 @@ void HSD_CObjSetupViewingMtx(HSD_CObj* cobj)
     }
 }
 
+#ifdef TARGET_PC
+/// The camera whose view an eye pass replaced, and its own, to put back
+/// before anything else reads it (the view is cached until the camera
+/// moves).
+static HSD_CObj* port_eye_cobj;
+static Mtx port_saved_view;
+
+void port_cobj_restore(void)
+{
+    if (port_eye_cobj != NULL) {
+        PSMTXCopy(port_saved_view, port_eye_cobj->view_mtx);
+        port_eye_cobj = NULL;
+    }
+}
+
+/// In an eye pass, draw the camera from the eye: its frustum, the whole
+/// image, and its view of the game's world.
+static void port_cobj_setup_eye(HSD_CObj* cobj)
+{
+    GXRenderModeObj* rmode = HSD_VIGetRenderMode();
+    Mtx44 p;
+
+    if (port_pass_eye_projection(p)) {
+        GXSetViewport(0.0f, 0.0f, rmode->fbWidth, rmode->efbHeight, 0.0f,
+                      1.0f);
+        GXSetScissor(0, 0, rmode->fbWidth, rmode->efbHeight);
+        GXSetProjection(p, GX_PERSPECTIVE);
+    }
+    PSMTXCopy(cobj->view_mtx, port_saved_view);
+    if (port_pass_eye_view(cobj->view_mtx)) {
+        port_eye_cobj = cobj;
+    }
+}
+#endif
+
 bool HSD_CObjSetCurrent(HSD_CObj* cobj)
 {
     HSD_RenderPass render_pass;
@@ -486,6 +525,12 @@ bool HSD_CObjSetCurrent(HSD_CObj* cobj)
     if (cobj == NULL) {
         return false;
     }
+#ifdef TARGET_PC
+    port_cobj_restore();
+    if (!port_pass_draws_camera(cobj->projection_type)) {
+        return false;
+    }
+#endif
     render_pass = HSD_GetCurrentRenderPass();
     _HSD_ZListClear();
     current = cobj;
@@ -510,6 +555,11 @@ bool HSD_CObjSetCurrent(HSD_CObj* cobj)
         return false;
     } else {
         HSD_CObjSetupViewingMtx(cobj);
+#ifdef TARGET_PC
+        if (port_pass_current() != PORT_PASS_FLAT) {
+            port_cobj_setup_eye(cobj);
+        }
+#endif
         return true;
     }
 }
@@ -518,6 +568,9 @@ void HSD_CObjEndCurrent(void)
 {
     _HSD_ZListSort();
     _HSD_ZListDisp();
+#ifdef TARGET_PC
+    port_cobj_restore();
+#endif
 }
 
 HSD_WObj* HSD_CObjGetInterestWObj(HSD_CObj* cobj)

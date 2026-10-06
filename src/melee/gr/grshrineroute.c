@@ -446,7 +446,7 @@ void grShrineRoute_80208F70(Ground_GObj* gobj)
                         mpLib_80057BC0(6);
                         mpLib_80057BC0(7);
                         temp = grShrineRoute_802088C0(5);
-                        gp->u.shrineroute.xD4 = (u32) temp;
+                        gp->u.shrineroute.xD4 = (uaddr_t) temp;
                         if (temp != NULL) {
                             ejobj =
                                 ((HSD_GObj*) gp->u.shrineroute.xD4)->hsd_obj;

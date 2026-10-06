@@ -1,5 +1,9 @@
 #include "camera.h"
 
+#ifdef TARGET_PC
+#include <port/port_internal.h>
+#endif
+
 #include <Runtime/platform.h>
 
 #include <melee/ft/forward.h>
@@ -3960,6 +3964,9 @@ static void fn_800301D0(HSD_GObj* gobj, intptr_t arg1)
     HSD_CObj* cobj;
 
     cobj = gobj->hsd_obj;
+#ifdef TARGET_PC
+    port_note_match_camera();
+#endif
     lbRefract_8002247C(cobj);
     Camera_8002A4AC(gobj);
     lbShadow_8000F38C(game_camera.x399_b7);

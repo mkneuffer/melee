@@ -43,6 +43,11 @@ set(EXCLUSIONS
     sysdolphin/baselib/video.c # needs VIPadFrameBufferWidth
 )
 
+# The port has what these need (src/port, cmake/Port.cmake)
+if(MELEE_PORT)
+    set(EXCLUSIONS)
+endif()
+
 foreach(_exclusion IN LISTS EXCLUSIONS)
     list(REMOVE_ITEM SOURCES "${_melee_root}/src/${_exclusion}")
 endforeach()

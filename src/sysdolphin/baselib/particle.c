@@ -49,8 +49,8 @@ typedef struct {
 /* 4D78E4 */ static u16 hsd_804D78E4 = 0;
 #pragma pop
 #endif
-/* 4D78E8 */ u32 hsd_804D78E8 = 0;
-/* 4D78EC */ u32 hsd_804D78EC = 0;
+/* 4D78E8 */ uaddr_t hsd_804D78E8 = 0;
+/* 4D78EC */ uaddr_t hsd_804D78EC = 0;
 /* 4D78F0 */ HSD_CObj* psCamera = NULL;
 /* 4D78F4 */ HSD_SList* hsd_804D78F4 = NULL;
 static HSD_JObj* psPointJObj[8];

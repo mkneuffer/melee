@@ -33,6 +33,16 @@ typedef void (*Event)(void);
 
 typedef bool (*Predicate)(void);
 
+/// An integer that holds an address. Exactly #u32 / #s32 on GameCube, so
+/// matching code is unaffected; pointer-sized on the 64-bit port.
+#ifdef TARGET_PC
+typedef uintptr_t uaddr_t;
+typedef intptr_t saddr_t;
+#else
+typedef u32 uaddr_t;
+typedef s32 saddr_t;
+#endif
+
 #if defined(__MWERKS__) && defined(__PPCGEKKO__)
 #define MWERKS_GEKKO
 #endif

@@ -433,14 +433,30 @@ void HSD_ClearVtxDesc(void)
     prev_vtxdesc = 0;
 }
 
+#ifdef TARGET_PC
+/// The PObj whose arrays are being set: their lengths come from its display
+/// list (port_gx.c).
+static HSD_PObj* port_pobj;
+void port_gx_set_array(const HSD_PObj* pobj, const HSD_VtxDescList* desc);
+#endif
+
 static void setupArrayDesc(HSD_VtxDescList* desc_list)
 {
     HSD_VtxDescList* desc;
 
+#ifdef TARGET_PC
+    // Shapes sharing arrays may index more or less of them: set the
+    // lengths for each
+    prev_vtxdesclist_array = NULL;
+#endif
     if (prev_vtxdesclist_array != desc_list) {
         for (desc = desc_list; desc->attr != GX_VA_NULL; desc++) {
             if (desc->attr_type != GX_DIRECT) {
+#ifdef TARGET_PC
+                port_gx_set_array(port_pobj, desc);
+#else
                 GXSetArray(desc->attr, desc->vertex, desc->stride);
+#endif
             }
         }
         prev_vtxdesclist_array = desc_list;
@@ -487,7 +503,11 @@ static void setupShapeAnimArrayDesc(HSD_VtxDescList* desc_list)
             case GX_VA_NBT:
                 break;
             default:
+#ifdef TARGET_PC
+                port_gx_set_array(port_pobj, desc);
+#else
                 GXSetArray(desc->attr, desc->vertex, desc->stride);
+#endif
             }
         }
     }
@@ -1217,6 +1237,9 @@ static void PObjSetupMtx(HSD_PObj* pobj, Mtx vmtx, Mtx pmtx, u32 rendermode)
 
 static void PObjDispSimplePrimitive(HSD_PObj* pobj, u32 rendermode)
 {
+#ifdef TARGET_PC
+    port_pobj = pobj;
+#endif
     setupArrayDesc(pobj->verts);
     setupVtxDesc(pobj);
 
@@ -1225,6 +1248,9 @@ static void PObjDispSimplePrimitive(HSD_PObj* pobj, u32 rendermode)
 
 static void PObjDispShapeAnim(HSD_PObj* pobj, u32 rendermode)
 {
+#ifdef TARGET_PC
+    port_pobj = pobj;
+#endif
     setupShapeAnimArrayDesc(pobj->verts);
     setupShapeAnimVtxDesc(pobj);
 

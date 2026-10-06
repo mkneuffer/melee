@@ -45,6 +45,10 @@ struct HSD_Archive {
     char* name;                            /* 0x38 */
     u32 flags;                             /* 0x3C */
     void* top_ptr;                         /* 0x40 */
+#ifdef TARGET_PC
+    /// The port's native view of the archive (port_dat.c).
+    void* native;
+#endif
 };
 ASSERT_SIZE(struct HSD_Archive, 0x44);
 

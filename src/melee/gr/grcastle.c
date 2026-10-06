@@ -718,7 +718,7 @@ void grCastle_801CE19C(Ground_GObj* gobj)
                 Ground_801C5440(gp, 0, 0x53021U);
                 Ground_801C5694(
                     gp, 0, yakumono_param->entries[new_gp->u.castle5.xC6].x4);
-                new_gp->u.castle11.xD4 = (u32) gobj;
+                new_gp->u.castle11.xD4 = (uaddr_t) gobj;
             }
         }
     }
@@ -737,12 +737,23 @@ void grCastle_801CE260(Ground_GObj* gobj)
 
     gp->u.castle11.xC4.b0 = 0;
     gp->u.icemt.x2 = gp->map_id - 8;
+#ifdef TARGET_PC
+    // arwing's u32 slots can't hold a 64-bit address; use castle11's
+    // widened slots at the same GameCube offsets, as grCastle_801CE578 does
+    gp->u.castle11.xCC = 0;
+#else
     gp->u.arwing.xCC = 0;
+#endif
     gp->u.flatzone.xCA = yakumono_param->entries[gp->u.icemt.x2].x0;
 
     gp2 = GET_GROUND(gobj);
+#ifdef TARGET_PC
+    gp2->u.castle11.xD8 = (uaddr_t) Camera_80029044(2);
+    subject = (CmSubject*) gp2->u.castle11.xD8;
+#else
     *(u32*) &gp2->u.arwing.xD8 = (u32) Camera_80029044(2);
     subject = (CmSubject*) *(u32*) &gp2->u.arwing.xD8;
+#endif
     if (subject != NULL) {
         subject->target_ext.h.x = yakumono_param->x118;
         subject->target_ext.h.y = yakumono_param->x11C;
@@ -751,10 +762,17 @@ void grCastle_801CE260(Ground_GObj* gobj)
     }
 
     grMaterial_801C94D8(jobj);
+#ifdef TARGET_PC
+    gp->u.castle11.xD0 = (uaddr_t) grMaterial_801C8CFC(
+        0, 3, gp, Ground_801C3FA4((HSD_GObj*) gobj, 0),
+        (void (*)(Item_GObj*, Ground*)) fn_801CE3A0, NULL, NULL);
+    it_80275414((Item_GObj*) gp->u.castle11.xD0);
+#else
     gp->u.arwing.xD0 = (u32) grMaterial_801C8CFC(
         0, 3, gp, Ground_801C3FA4((HSD_GObj*) gobj, 0),
         (void (*)(Item_GObj*, Ground*)) fn_801CE3A0, NULL, NULL);
     it_80275414((Item_GObj*) gp->u.arwing.xD0);
+#endif
     Ground_801C5440(gp, 0, 0x53025U);
 }
 
@@ -831,7 +849,7 @@ void grCastle_801CE578(Ground_GObj* gobj)
             s16 timer = gp2->u.castle11.xCA;
             gp2->u.castle11.xCA = timer - 1;
             if (timer < 0) {
-                gp2->u.castle11.xCC = (u32) grCastle_801CD4D0(2);
+                gp2->u.castle11.xCC = (uaddr_t) grCastle_801CD4D0(2);
                 Ground_801C53EC(0x53026);
                 grCastle_801CE3AC_dontinline(gobj);
             }
@@ -946,18 +964,32 @@ void grCastle_801CE8E8(Ground_GObj* gobj)
     grAnime_801C8138((HSD_GObj*) gobj, gp->map_id, 0);
 
     gp2 = GET_GROUND(gobj);
+#ifdef TARGET_PC
+    // arwing's u32 slots can't hold a 64-bit address; use castle11's
+    // widened slots for the camera subject and the material
+    gp2->u.castle11.xD8 = (uaddr_t) Camera_80029044(2);
+    subject = (CmSubject*) gp2->u.castle11.xD8;
+#else
     gp2->u.arwing.xC8 = (u32) Camera_80029044(2);
     subject = (CmSubject*) gp2->u.arwing.xC8;
+#endif
     if (subject != NULL) {
         subject->target_ext.h.x = yakumono_param->x134;
         subject->target_ext.h.y = yakumono_param->x138;
         subject->target_ext.v.x = yakumono_param->x13C;
         subject->target_ext.v.y = yakumono_param->x140;
     }
+#ifdef TARGET_PC
+    gp->u.castle11.xD0 = (uaddr_t) grMaterial_801C8CFC(
+        0, 4, gp, Ground_801C3FA4((HSD_GObj*) gobj, 0),
+        (void (*)(Item_GObj*, Ground*)) fn_801CE9DC, NULL, NULL);
+    it_80275414((Item_GObj*) gp->u.castle11.xD0);
+#else
     gp->u.arwing.xC4 = (u32) grMaterial_801C8CFC(
         0, 4, gp, Ground_801C3FA4((HSD_GObj*) gobj, 0),
         (void (*)(Item_GObj*, Ground*)) fn_801CE9DC, NULL, NULL);
     it_80275414((Item_GObj*) gp->u.arwing.xC4);
+#endif
     Ground_801C5440(gp, 0, 0x53024U);
 }
 
@@ -973,7 +1005,11 @@ void grCastle_801CE9E8(Ground_GObj* gobj)
     Vec3 pos;
     Ground* tmp;
     Ground* gp = GET_GROUND(gobj);
+#ifdef TARGET_PC
+    CmSubject* subject = (CmSubject*) gp->u.castle11.xD8;
+#else
     CmSubject* subject = (CmSubject*) gp->u.arwing.xC8;
+#endif
     PAD_STACK(8);
     if (subject != NULL) {
         lb_8000B1CC(Ground_801C3FA4(gobj, 0), NULL, &pos);
@@ -981,17 +1017,33 @@ void grCastle_801CE9E8(Ground_GObj* gobj)
         subject->bone_pos = pos;
     }
     if (grAnime_801C83D0(gobj, 0, 1)) {
+#ifdef TARGET_PC
+        HSD_GObj* mat = (HSD_GObj*) (tmp = gp)->u.castle11.xD0;
+#else
         HSD_GObj* mat = (HSD_GObj*) (tmp = gp)->u.arwing.xC4;
+#endif
         if (mat != NULL) {
             grMaterial_801C8CDC(mat);
         }
+#ifdef TARGET_PC
+        gp->u.castle11.xD0 = 0;
+#else
         gp->u.arwing.xC4 = 0;
+#endif
         {
             Ground* gp2 = gobj->user_data;
+#ifdef TARGET_PC
+            CmSubject* subj2 = (CmSubject*) (tmp = gp2)->u.castle11.xD8;
+#else
             CmSubject* subj2 = (CmSubject*) (tmp = gp2)->u.arwing.xC8;
+#endif
             if (subj2 != NULL) {
                 Camera_800290D4(subj2);
+#ifdef TARGET_PC
+                gp2->u.castle11.xD8 = 0;
+#else
                 gp2->u.arwing.xC8 = 0;
+#endif
             }
         }
         Ground_801C4A08(gobj);
@@ -1277,7 +1329,7 @@ void grCastle_801CF308(Ground_GObj* gobj)
                 gp->u.castle11.xCA = (s16) (2.0 * (f64) val);
             } else {
                 gp->u.castle5.xC4 = 3;
-                gp->u.castle11.xD8 = (u32) grMaterial_801C8CFC(
+                gp->u.castle11.xD8 = (uaddr_t) grMaterial_801C8CFC(
                     0, 1, gp, jobj, NULL,
                     (void (*)(Item_GObj*, Ground*, Vec3*, HSD_GObj*, f32))(
                         Event) fn_801CFAFC,
@@ -1445,8 +1497,8 @@ static inline void grCastle_PickSatellite(Ground* gp, s32* wp)
             }
         }
         if (entity != NULL) {
-            sat_gp->u.castle7.xD4 =
-                (u32) Ground_801C3FA4(entity, (s32) targets.e[idx].jobj_idx);
+            sat_gp->u.castle7.xD4 = (uaddr_t) Ground_801C3FA4(
+                entity, (s32) targets.e[idx].jobj_idx);
             sat_gp->u.castle7.xC4 = 1;
         }
     }
@@ -1578,7 +1630,7 @@ s32 grCastle_801CFBD4(Ground_GObj* gobj, s32 arg1)
                                 cb1 = grCs_803B7F28;
                                 cb2 = grCs_803B7F3C;
                                 gp->u.castle10.x10C[i] =
-                                    (u32) grMaterial_801C8CFC(
+                                    (uaddr_t) grMaterial_801C8CFC(
                                         0, 2, gp, target, NULL,
                                         (void (*)(Item_GObj*, Ground*, Vec3*,
                                                   HSD_GObj*, f32))(

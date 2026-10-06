@@ -1553,7 +1553,11 @@ HSD_GObj* mnName_8023A59C(u8 arg0)
         if (p == NULL) {
             j = NULL;
         } else {
+#ifdef TARGET_PC
+            j = ((HSD_JObj*) p)->child; // see mn_80231634
+#else
             j = (HSD_JObj*) p->x10;
+#endif
         }
         HSD_JObjRemoveAll(j);
         if (user_data->text != NULL) {
@@ -1626,7 +1630,11 @@ void mnName_8023A9B4(u8 arg0)
         if (p == NULL) {
             jobj = NULL;
         } else {
+#ifdef TARGET_PC
+            jobj = ((HSD_JObj*) p)->child; // see mn_80231634
+#else
             jobj = (HSD_JObj*) p->x10;
+#endif
         }
         HSD_JObjRemoveAll(jobj);
         if (gobj2->text != NULL) {

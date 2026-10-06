@@ -10,6 +10,10 @@
 #include <sysdolphin/baselib/archive.h>
 #include <sysdolphin/baselib/debug.h>
 
+#ifdef TARGET_PC
+#include <port/port_internal.h>
+#endif
+
 void lbArchive_InitializeDAT(HSD_Archive* archive, void* data, size_t length)
 {
     const char* symbol;
@@ -61,6 +65,9 @@ static inline void readArchive(const char* filename, void* data,
     size_t length;
 
     lbFile_8001668C(filename, data, &length);
+#ifdef TARGET_PC
+    port_dat_set_next_file(filename);
+#endif
     lbArchive_InitializeDAT(archive, data, length);
 }
 
@@ -219,6 +226,14 @@ int lbArchiveRelocate(HSD_Archive* archive, u8* src, size_t file_size,
                       intptr_t base_addr)
 {
     size_t file_offset;
+
+#ifdef TARGET_PC
+    // The port never relocates the data in place (port_dat.c), so a copy of
+    // a parsed archive is still as it was on the disc: parse it again
+    (void) file_offset;
+    (void) base_addr;
+    return HSD_ArchiveParse(archive, src, file_size);
+#endif
 
     if (archive == NULL) {
         return -1;

@@ -1113,7 +1113,7 @@ void Fighter_ChangeMotionState(Fighter_GObj* gobj, FtMotionId msid,
     }
 
     if (((flags & Ft_MF_KeepAccessory) == 0) &&
-        ((u32) fp->x20A0_accessory != 0U))
+        ((uaddr_t) fp->x20A0_accessory != 0U))
     {
         HSD_JObjRemoveAll(fp->x20A0_accessory);
         fp->x20A0_accessory = 0U;

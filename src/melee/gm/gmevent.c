@@ -501,7 +501,7 @@ void onEnterVs(GameModeState* arg0)
             gm_8016A434();
         }
         if (event_info[level]->x4 != NULL) {
-            gm_8016A404((s32) event_info[level]->x4);
+            gm_8016A404((saddr_t) event_info[level]->x4);
         }
         if (levels[level]->evbonus->x15 != 0) {
             gm_8016A424(levels[level]->evbonus->x15);

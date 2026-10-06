@@ -15,7 +15,7 @@ int ft_804D6570;
 
 ColorOverlay* ftCo_800C0658(Fighter* fp)
 {
-    return (int) fp->x408.x28_colanim.ptr != 0 ? &fp->x408 : &fp->x488;
+    return (intptr_t) fp->x408.x28_colanim.ptr != 0 ? &fp->x408 : &fp->x488;
 }
 
 ColorOverlay* ftCo_800C0674(Fighter_GObj* gobj)

@@ -689,7 +689,7 @@ void grBigBlue_801E6C60(Ground_GObj* gobj)
 
         switch ((s8) gp->u.bigblue.x0_u.x0_s.data[i].x1) {
         case 0: {
-            if ((int) grBigBlue_801E89DC(0) != 0) {
+            if ((intptr_t) grBigBlue_801E89DC(0) != 0) {
                 s32 range = yakumono_param->x8C;
                 s32 rand_val;
 
@@ -717,7 +717,7 @@ void grBigBlue_801E6C60(Ground_GObj* gobj)
             break;
         }
         case 1:
-            if ((int) grBigBlue_801E89DC(0) == 0) {
+            if ((intptr_t) grBigBlue_801E89DC(0) == 0) {
                 gp->u.bigblue.x0_u.x0_s.data[i].x1 = 0;
                 break;
             }
@@ -783,7 +783,7 @@ void grBigBlue_801E6C60(Ground_GObj* gobj)
                         }
                     }
 
-                    if ((int) grBigBlue_801E89DC(1) != 0) {
+                    if ((intptr_t) grBigBlue_801E89DC(1) != 0) {
                         gp->u.bigblue.x0_u.x0_s.data[i].x2 = 1;
                         pos.x = -(10.0f + Stage_GetBlastZoneRightOffset());
                     } else if ((s32) gp->u.bigblue.x0_u.x0_s.data[i].x2 == 1) {
@@ -849,7 +849,7 @@ void grBigBlue_801E6C60(Ground_GObj* gobj)
                         }
                     }
                     base->u.bigblue.x0_u.manager.flags += 1;
-                    if ((int) grBigBlue_801E89DC(2) == 0) {
+                    if ((intptr_t) grBigBlue_801E89DC(2) == 0) {
                         grBb_YakumonoParam* params = yakumono_param;
                         u32 cnt = base->u.bigblue.x0_u.manager.flags;
                         if ((s32) cnt >= params->x11C) {
@@ -861,7 +861,7 @@ void grBigBlue_801E6C60(Ground_GObj* gobj)
                             }
                         }
                     }
-                    if ((int) grBigBlue_801E89DC(1) == 0) {
+                    if ((intptr_t) grBigBlue_801E89DC(1) == 0) {
                         grBb_YakumonoParam* params = yakumono_param;
                         u32 cnt2 = base->u.bigblue.x0_u.manager.flags;
                         if ((s32) cnt2 >= params->xDC &&

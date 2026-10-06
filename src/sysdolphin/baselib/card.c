@@ -195,7 +195,7 @@ void hsd_803A949C(s32 chan, s32 card_result)
                 if (commands[curr_head].x8.read.data != NULL) {
                     CardBlockHeader* src =
                         (CardBlockHeader*) (hdr_offset +
-                                            (u32) state->sector_buf);
+                                            (uaddr_t) state->sector_buf);
                     memcpy(commands[curr_head].x8.read.data, src->data,
                            commands[curr_head].x8.read.size);
                 }
@@ -642,7 +642,7 @@ void hsd_803A949C(s32 chan, s32 card_result)
                 {
                     CardBlockHeader* src13 =
                         (CardBlockHeader*) (hdr_offset13 +
-                                            (u32) state->sector_buf);
+                                            (uaddr_t) state->sector_buf);
                     hsd_803AC558(state, src13->file_table);
                 }
             }
@@ -2154,7 +2154,7 @@ s32 fn_803ACF30(CardState* state, void* comment, void* banner, void* icons)
 
 static inline u8* fn_803ACFC0_header(CardState* state, s32 hdr_offset)
 {
-    return (u8*) (hdr_offset + (s32) state->sector_buf);
+    return (u8*) (hdr_offset + (saddr_t) state->sector_buf);
 }
 
 static inline u8* fn_803ACFC0_checksum_start(s32 hdr_offset, CardState* state)
@@ -2212,7 +2212,7 @@ s32 fn_803ACFC0(CardState* state, s32 block_idx, s32 block_id, s32 seq_num,
             (state->sector_size - hdr_offset) - payload_size - 0x20;
         if (remaining != 0) {
             s32 off = payload_size + 0x20;
-            s32 addr = (s32) state->sector_buf;
+            saddr_t addr = (saddr_t) state->sector_buf;
             memset((u8*) (hdr_offset + off + addr), 0, remaining);
         }
     }

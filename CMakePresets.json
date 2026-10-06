@@ -61,6 +61,38 @@
           "value": true
         }
       }
+    },
+    {
+      "name": "visionos",
+      "displayName": "visionOS (Apple Vision Pro)",
+      "description": "The native port and its app, as an Xcode project for the device",
+      "generator": "Xcode",
+      "binaryDir": "${sourceDir}/build/visionos",
+      "toolchainFile": "${sourceDir}/cmake/visionos.cmake",
+      "cacheVariables": {
+        "MELEE_PORT": {
+          "type": "BOOL",
+          "value": true
+        },
+        "MELEE_VERSION": "GALE01"
+      },
+      "condition": {
+        "type": "equals",
+        "lhs": "${hostSystemName}",
+        "rhs": "Darwin"
+      }
+    },
+    {
+      "name": "visionos-sim",
+      "displayName": "visionOS Simulator",
+      "description": "The native port and its app, for the visionOS simulator",
+      "inherits": [
+        "visionos"
+      ],
+      "binaryDir": "${sourceDir}/build/visionos-sim",
+      "cacheVariables": {
+        "CMAKE_OSX_SYSROOT": "xrsimulator"
+      }
     }
   ],
   "buildPresets": [
@@ -75,6 +107,16 @@
     {
       "name": "dat",
       "configurePreset": "dat"
+    },
+    {
+      "name": "visionos",
+      "configurePreset": "visionos",
+      "configuration": "Debug"
+    },
+    {
+      "name": "visionos-sim",
+      "configurePreset": "visionos-sim",
+      "configuration": "Debug"
     }
   ]
 }

@@ -164,10 +164,10 @@ struct DevText {
 ASSERT_SIZE(struct DevText, 0x34);
 
 struct un_804D6EF4_t {
-    /* +0x00 */ u32 x00;
+    /* +0x00 */ uaddr_t x00;
     /* +0x04 */ HSD_GObj* unk4;
-    /* +0x08 */ u32 x08;
-    /* +0x0C */ u32 x0C;
+    /* +0x08 */ uaddr_t x08;
+    /* +0x0C */ uaddr_t x0C;
     /* +0x10 */ HSD_JObj* jobjs[16];
     /* +0x50 */ HSD_Archive* archive;
     /* +0x54 */ s16 x54;

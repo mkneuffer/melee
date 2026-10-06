@@ -1,0 +1,445 @@
+diff --git a/include/aurora/aurora.h b/include/aurora/aurora.h
+index 50caa5a..c59f5bd 100644
+--- a/include/aurora/aurora.h
++++ b/include/aurora/aurora.h
+@@ -116,6 +116,14 @@ typedef struct {
+    * This can be set to 0 to disable allocating this region.
+    */
+   uint32_t mem2Size;
++
++  /*
++   * A CAMetalLayer the host application owns and presents, in place of a window Aurora creates. For hosts that
++   * manage their own windows and scenes (visionOS's SwiftUI scenes). Aurora then creates no SDL window and
++   * initializes SDL for events and input only; the host reports the layer's size with
++   * aurora_set_external_layer_size().
++   */
++  void* externalMetalLayer;
+ } AuroraConfig;
+ 
+ typedef struct {
+@@ -137,6 +145,29 @@ void aurora_set_pause_on_focus_lost(bool value);
+ void aurora_set_background_input(bool value);
+ void aurora_set_resampler(AuroraSampler sampler);
+ 
++/*
++ * The external layer's size in pixels, and its scale (pixels per point). Call before aurora_initialize(), and
++ * whenever the layer resizes.
++ */
++void aurora_set_external_layer_size(uint32_t width, uint32_t height, float scale);
++
++/*
++ * Present the next frame into an IOSurface (IOSurfaceRef, BGRA8) instead of the surface, or to the surface again
++ * with NULL. Takes effect at the next aurora_end_frame(). The frame is complete on the GPU after
++ * aurora_wait_idle(). Metal only.
++ */
++void aurora_set_present_target(void* ioSurface, uint32_t width, uint32_t height);
++
++/*
++ * Clear the EFB's color, alpha and depth now, as at the start of a frame.
++ */
++void aurora_clear_efb(float r, float g, float b, float a);
++
++/*
++ * Wait for every frame ended so far to finish on the GPU.
++ */
++void aurora_wait_idle(void);
++
+ AuroraBackend aurora_get_backend();
+ const AuroraBackend* aurora_get_available_backends(size_t* count);
+ 
+diff --git a/lib/aurora.cpp b/lib/aurora.cpp
+index cf4924b..9510858 100644
+--- a/lib/aurora.cpp
++++ b/lib/aurora.cpp
+@@ -1,6 +1,7 @@
+ #include <aurora/aurora.h>
+ 
+ #ifdef AURORA_ENABLE_GX
++#include "gfx/clear.hpp"
+ #include "gfx/resources.hpp"
+ #include "gfx/frame.hpp"
+ #include "gfx/recording.hpp"
+@@ -31,6 +32,46 @@
+ #include "tracy/Tracy.hpp"
+ 
+ namespace aurora {
++namespace webgpu {
++bool import_iosurface(const wgpu::Device& device, void* ioSurface, wgpu::SharedTextureMemory& memory,
++                      wgpu::Texture& texture);
++} // namespace webgpu
++
++namespace {
++/// Where the next frame presents instead of the surface (aurora_set_present_target).
++struct PresentTarget {
++  void* ioSurface = nullptr;
++  uint32_t width = 0;
++  uint32_t height = 0;
++};
++PresentTarget g_presentTarget;
++
++/// Imported IOSurfaces, by surface: the host reuses a few.
++struct ImportedTarget {
++  void* ioSurface = nullptr;
++  wgpu::SharedTextureMemory memory;
++  wgpu::Texture texture;
++};
++std::vector<ImportedTarget> g_importedTargets;
++
++ImportedTarget* import_target(void* ioSurface) {
++  for (auto& target : g_importedTargets) {
++    if (target.ioSurface == ioSurface) {
++      return &target;
++    }
++  }
++  ImportedTarget target{.ioSurface = ioSurface};
++  if (!webgpu::import_iosurface(webgpu::g_device, ioSurface, target.memory, target.texture)) {
++    return nullptr;
++  }
++  if (g_importedTargets.size() >= 8) {
++    g_importedTargets.erase(g_importedTargets.begin());
++  }
++  g_importedTargets.push_back(std::move(target));
++  return &g_importedTargets.back();
++}
++} // namespace
++
+ AuroraConfig g_config;
+ uint32_t g_sdlCustomEventsStart;
+ char g_gameName[4];
+@@ -284,13 +325,30 @@ void end_frame() noexcept {
+   }
+ #endif
+ 
+-  gfx::end_frame([rmlBindGroup = std::move(rmlBindGroup), rmlOverlay, viewport,
++  const PresentTarget presentTarget = g_presentTarget;
++  gfx::end_frame([rmlBindGroup = std::move(rmlBindGroup), rmlOverlay, viewport, presentTarget,
+                   imguiDrawData = std::move(imguiDrawData)](
+                      wgpu::CommandEncoder& encoder, std::vector<gfx::AfterSubmitCallback> afterSubmitCallbacks) {
+     wgpu::Texture currentTexture;
+     wgpu::TextureView currentView;
+     auto surfaceStatus = wgpu::SurfaceGetCurrentTextureStatus::Error;
+-    {
++    ImportedTarget* target = nullptr;
++    if (presentTarget.ioSurface != nullptr) {
++      // The host's IOSurface: rendered into here, presented by the host
++      target = import_target(presentTarget.ioSurface);
++      if (target != nullptr) {
++        const wgpu::SharedTextureMemoryBeginAccessDescriptor beginAccess{
++            .concurrentRead = false,
++            .initialized = false,
++        };
++        if (target->memory.BeginAccess(target->texture, &beginAccess)) {
++          currentTexture = target->texture;
++          currentView = currentTexture.CreateView();
++        } else {
++          target = nullptr;
++        }
++      }
++    } else {
+       window::SurfaceLock surfaceLock;
+       if (window::is_presentable() && g_surface) {
+         ZoneScopedN("Acquire texture");
+@@ -331,8 +389,14 @@ void end_frame() noexcept {
+         // Copy EFB -> XFB (swapchain)
+         pass.SetPipeline(webgpu::g_CopyPipeline);
+         pass.SetBindGroup(0, presentBindGroup, 0, nullptr);
+-        set_present_viewport(pass, viewport, webgpu::g_graphicsConfig.surfaceConfiguration.width,
+-                             webgpu::g_graphicsConfig.surfaceConfiguration.height);
++        if (target != nullptr) {
++          // Stretch to the whole target: the content's projection already covers it
++          pass.SetViewport(0.f, 0.f, static_cast<float>(presentTarget.width),
++                           static_cast<float>(presentTarget.height), 0.f, 1.f);
++        } else {
++          set_present_viewport(pass, viewport, webgpu::g_graphicsConfig.surfaceConfiguration.width,
++                               webgpu::g_graphicsConfig.surfaceConfiguration.height);
++        }
+ 
+         pass.Draw(3);
+         if (rmlBindGroup && rmlOverlay) {
+@@ -342,7 +406,7 @@ void end_frame() noexcept {
+         }
+         pass.End();
+       }
+-      {
++      if (target == nullptr) {
+         const std::array attachments{
+             wgpu::RenderPassColorAttachment{
+                 .view = currentView,
+@@ -373,7 +437,10 @@ void end_frame() noexcept {
+       g_queue.Submit(1, &buffer);
+     }
+     webgpu::gpu_prof::after_submit();
+-    if (canPresent && g_surface) {
++    if (target != nullptr) {
++      wgpu::SharedTextureMemoryEndAccessState endAccess;
++      target->memory.EndAccess(target->texture, &endAccess);
++    } else if (canPresent && g_surface) {
+       ZoneScopedN("Present");
+       wgpu::ConvertibleStatus status = wgpu::Status::Error;
+       {
+@@ -452,6 +519,37 @@ AuroraInfo aurora_initialize(int argc, char* argv[], const AuroraConfig* config)
+ void aurora_shutdown() { aurora::shutdown(); }
+ const AuroraEvent* aurora_update() { return aurora::update(); }
+ bool aurora_begin_frame() { return aurora::begin_frame(); }
++
++void aurora_set_external_layer_size(uint32_t width, uint32_t height, float scale) {
++  aurora::window::set_external_size(width, height, scale);
++}
++
++void aurora_set_present_target(void* ioSurface, uint32_t width, uint32_t height) {
++  aurora::g_presentTarget = {.ioSurface = ioSurface, .width = width, .height = height};
++}
++
++void aurora_clear_efb(float r, float g, float b, float a) {
++#ifdef AURORA_ENABLE_GX
++  aurora::gfx::push_draw_command(aurora::gfx::clear::DrawData{
++      .pipeline = aurora::gfx::pipeline_ref(aurora::gfx::clear::PipelineConfig{
++          .clearColor = true,
++          .clearAlpha = true,
++          .clearDepth = true,
++      }),
++      .color = wgpu::Color{r, g, b, a},
++      .depth = aurora::gx::clear_depth_value(),
++  });
++#endif
++}
++
++void aurora_wait_idle(void) {
++#ifdef AURORA_ENABLE_GX
++  aurora::gfx::render_worker::synchronize();
++  const auto future = aurora::webgpu::g_queue.OnSubmittedWorkDone(
++      wgpu::CallbackMode::WaitAnyOnly, [](wgpu::QueueWorkDoneStatus, wgpu::StringView) {});
++  aurora::webgpu::g_instance.WaitAny(future, UINT64_MAX);
++#endif
++}
+ void aurora_end_frame() { aurora::end_frame(); }
+ AuroraBackend aurora_get_backend() { return aurora::g_config.desiredBackend; }
+ const AuroraBackend* aurora_get_available_backends(size_t* count) {
+diff --git a/lib/dawn/BackendBinding.cpp b/lib/dawn/BackendBinding.cpp
+index 447ead8..a889d2c 100644
+--- a/lib/dawn/BackendBinding.cpp
++++ b/lib/dawn/BackendBinding.cpp
+@@ -49,6 +49,19 @@ std::shared_ptr<wgpu::ChainedStruct> SetupWindowAndGetSurfaceDescriptor(SDL_Wind
+ 
+ } // namespace utils
+ 
++wgpu::Surface create_metal_layer_surface(const wgpu::Instance& instance, void* layer, const char* label) {
++  if (!instance || layer == nullptr) {
++    return nullptr;
++  }
++  wgpu::SurfaceSourceMetalLayer source;
++  source.layer = layer;
++  const wgpu::SurfaceDescriptor descriptor{
++      .nextInChain = &source,
++      .label = label,
++  };
++  return instance.CreateSurface(&descriptor);
++}
++
+ wgpu::Surface create_window_surface(const wgpu::Instance& instance, SDL_Window* window, const char* label) {
+   if (!instance || window == nullptr) {
+     return nullptr;
+diff --git a/lib/dawn/MetalBinding.mm b/lib/dawn/MetalBinding.mm
+index df01ed3..a8e92bd 100644
+--- a/lib/dawn/MetalBinding.mm
++++ b/lib/dawn/MetalBinding.mm
+@@ -36,3 +36,33 @@ std::shared_ptr<wgpu::ChainedStruct> SetupWindowAndGetSurfaceDescriptorCocoa(SDL
+   return std::move(desc);
+ }
+ } // namespace aurora::webgpu::utils
++
++namespace aurora::webgpu {
++/// A texture rendering into `ioSurface` (IOSurfaceRef), shared with the host that made it.
++bool import_iosurface(const wgpu::Device& device, void* ioSurface, wgpu::SharedTextureMemory& memory,
++                      wgpu::Texture& texture) {
++  wgpu::SharedTextureMemoryIOSurfaceDescriptor ioSurfaceDesc;
++  ioSurfaceDesc.ioSurface = ioSurface;
++  const wgpu::SharedTextureMemoryDescriptor memoryDesc{
++      .nextInChain = &ioSurfaceDesc,
++      .label = "Present target",
++  };
++  memory = device.ImportSharedTextureMemory(&memoryDesc);
++  if (!memory) {
++    return false;
++  }
++  wgpu::SharedTextureMemoryProperties properties;
++  memory.GetProperties(&properties);
++  const wgpu::TextureDescriptor textureDesc{
++      .label = "Present target",
++      .usage = wgpu::TextureUsage::RenderAttachment,
++      .dimension = wgpu::TextureDimension::e2D,
++      .size = properties.size,
++      .format = properties.format,
++      .mipLevelCount = 1,
++      .sampleCount = 1,
++  };
++  texture = memory.CreateTexture(&textureDesc);
++  return static_cast<bool>(texture);
++}
++} // namespace aurora::webgpu
+diff --git a/lib/webgpu/gpu.cpp b/lib/webgpu/gpu.cpp
+index 592b8ab..2c6c069 100644
+--- a/lib/webgpu/gpu.cpp
++++ b/lib/webgpu/gpu.cpp
+@@ -732,7 +732,19 @@ static void release_surface_locked() noexcept {
+   g_surface = {};
+ }
+ 
++wgpu::Surface create_metal_layer_surface(const wgpu::Instance& instance, void* layer, const char* label);
++
+ static bool create_surface() {
++  if (g_config.externalMetalLayer != nullptr) {
++    window::SurfaceLock surfaceLock;
++    release_surface_locked();
++    g_surface = create_metal_layer_surface(g_instance, g_config.externalMetalLayer, "Surface");
++    if (!g_surface) {
++      Log.error("Failed to create surface from the external layer");
++      return false;
++    }
++    return true;
++  }
+   SDL_Window* window = window::get_sdl_window();
+   if (window == nullptr) {
+     Log.error("Failed to create surface: no window");
+@@ -916,6 +928,11 @@ bool initialize(AuroraBackend auroraBackend, bool allowCpu) {
+         requiredFeatures.push_back(feature);
+       }
+ #endif
++      // Present targets the host shares (aurora_set_present_target)
++      if (feature == wgpu::FeatureName::SharedTextureMemoryIOSurface ||
++          feature == wgpu::FeatureName::SharedFenceMTLSharedEvent) {
++        requiredFeatures.push_back(feature);
++      }
+     }
+     std::string featureList;
+     for (auto featureName : requiredFeatures) {
+diff --git a/lib/window.cpp b/lib/window.cpp
+index c33c600..3c2e7ab 100644
+--- a/lib/window.cpp
++++ b/lib/window.cpp
+@@ -52,6 +52,11 @@ std::atomic_bool g_surfaceReady = true;
+ #endif
+ bool g_lastPaused = false;
+ bool g_gotFocus = false;
++std::atomic_uint32_t g_externalWidth = 0;
++std::atomic_uint32_t g_externalHeight = 0;
++std::atomic<float> g_externalScale = 1.f;
++
++bool is_external() noexcept { return g_config.externalMetalLayer != nullptr; }
+ 
+ bool operator==(const AuroraWindowSize& lhs, const AuroraWindowSize& rhs) {
+   return lhs.width == rhs.width && lhs.height == rhs.height && lhs.fb_width == rhs.fb_width &&
+@@ -287,6 +292,10 @@ const AuroraEvent* poll_events() {
+ }
+ 
+ bool create_window(AuroraBackend backend) {
++  if (is_external()) {
++    // The host owns the window: the surface comes from its layer (gpu.cpp)
++    return backend != BACKEND_NULL;
++  }
+   SDL_WindowFlags flags = SDL_WINDOW_HIGH_PIXEL_DENSITY;
+ #if TARGET_OS_IOS || TARGET_OS_TV
+   flags |= SDL_WINDOW_FULLSCREEN;
+@@ -379,7 +388,8 @@ bool initialize() {
+   /* We don't want to initialize anything input related here, otherwise the add events will get lost to the void */
+   TRY(SDL_SetHint(SDL_HINT_ORIENTATIONS, "LandscapeLeft LandscapeRight"), "Error setting {}: {}", SDL_HINT_ORIENTATIONS,
+       SDL_GetError());
+-  TRY(SDL_InitSubSystem(SDL_INIT_EVENTS | SDL_INIT_VIDEO), "Error initializing SDL: {}", SDL_GetError());
++  const SDL_InitFlags initFlags = is_external() ? SDL_INIT_EVENTS : SDL_INIT_EVENTS | SDL_INIT_VIDEO;
++  TRY(SDL_InitSubSystem(initFlags), "Error initializing SDL: {}", SDL_GetError());
+ 
+ #if !defined(_WIN32) && !defined(__APPLE__)
+   TRY(SDL_SetHint(SDL_HINT_VIDEO_X11_NET_WM_BYPASS_COMPOSITOR, "0"), "Error setting {}: {}",
+@@ -390,7 +400,9 @@ bool initialize() {
+   TRY(SDL_SetHint(SDL_HINT_JOYSTICK_HIDAPI_GAMECUBE_RUMBLE_BRAKE, "1"), "Error setting {}: {}",
+       SDL_HINT_JOYSTICK_HIDAPI_GAMECUBE_RUMBLE_BRAKE, SDL_GetError());
+ 
+-  TRY(SDL_DisableScreenSaver(), "Error disabling screensaver: {}", SDL_GetError());
++  if (!is_external()) {
++    TRY(SDL_DisableScreenSaver(), "Error disabling screensaver: {}", SDL_GetError());
++  }
+   if (g_config.allowJoystickBackgroundEvents) {
+     TRY(SDL_SetHint(SDL_HINT_JOYSTICK_ALLOW_BACKGROUND_EVENTS, "1"), "Error setting {}: {}",
+         SDL_HINT_JOYSTICK_ALLOW_BACKGROUND_EVENTS, SDL_GetError());
+@@ -416,9 +428,19 @@ AuroraWindowSize get_window_size() {
+   int height = 0;
+   int native_fb_w = 0;
+   int native_fb_h = 0;
+-  AURORA_ASSERT(SDL_GetWindowSize(g_window, &width, &height), "Failed to get window size: {}", SDL_GetError());
+-  AURORA_ASSERT(SDL_GetWindowSizeInPixels(g_window, &native_fb_w, &native_fb_h), "Failed to get window size in pixels: {}",
+-         SDL_GetError());
++  float scale = 1.f;
++  if (is_external()) {
++    scale = g_externalScale.load();
++    native_fb_w = static_cast<int>(std::max(g_externalWidth.load(), 1u));
++    native_fb_h = static_cast<int>(std::max(g_externalHeight.load(), 1u));
++    width = static_cast<int>(static_cast<float>(native_fb_w) / scale);
++    height = static_cast<int>(static_cast<float>(native_fb_h) / scale);
++  } else {
++    AURORA_ASSERT(SDL_GetWindowSize(g_window, &width, &height), "Failed to get window size: {}", SDL_GetError());
++    AURORA_ASSERT(SDL_GetWindowSizeInPixels(g_window, &native_fb_w, &native_fb_h),
++                  "Failed to get window size in pixels: {}", SDL_GetError());
++    scale = SDL_GetWindowDisplayScale(g_window);
++  }
+ 
+   int fb_w = native_fb_w;
+   int fb_h = native_fb_h;
+@@ -440,7 +462,6 @@ AuroraWindowSize get_window_size() {
+     }
+   }
+ 
+-  const float scale = SDL_GetWindowDisplayScale(g_window);
+   return {
+       .width = static_cast<uint32_t>(width),
+       .height = static_cast<uint32_t>(height),
+@@ -460,6 +481,10 @@ bool is_paused() noexcept {
+   if (!is_presentable()) {
+     return true;
+   }
++  if (is_external()) {
++    // The host pauses the game itself
++    return false;
++  }
+   const auto flags = SDL_GetWindowFlags(g_window);
+   if ((flags & SDL_WINDOW_HIDDEN) != 0u) {
+     return true;
+@@ -473,7 +498,7 @@ bool is_paused() noexcept {
+ }
+ 
+ bool is_presentable() noexcept {
+-  return g_window != nullptr && !g_backgrounded.load(std::memory_order_acquire) &&
++  return (g_window != nullptr || is_external()) && !g_backgrounded.load(std::memory_order_acquire) &&
+          g_surfaceReady.load(std::memory_order_acquire);
+ }
+ 
+@@ -525,8 +550,17 @@ static void push_future_resize_event() {
+            SDL_GetError());
+ }
+ 
++void set_external_size(uint32_t width, uint32_t height, float scale) {
++  g_externalWidth = width;
++  g_externalHeight = height;
++  g_externalScale = scale > 0.f ? scale : 1.f;
++  if (is_external() && SDL_WasInit(SDL_INIT_EVENTS)) {
++    push_future_resize_event();
++  }
++}
++
+ void request_frame_buffer_resize() {
+-  if (g_window != nullptr) {
++  if (g_window != nullptr || is_external()) {
+     // Defer so that we don't try to reconfigure the surface in the middle of game logic.
+     push_future_resize_event();
+   }
+diff --git a/lib/window.hpp b/lib/window.hpp
+index 51257ea..a1d4520 100644
+--- a/lib/window.hpp
++++ b/lib/window.hpp
+@@ -29,6 +29,7 @@ public:
+ bool initialize();
+ bool initialize_event_watch();
+ bool push_custom_event(CustomEvent eventType);
++void set_external_size(uint32_t width, uint32_t height, float scale);
+ void shutdown();
+ bool create_window(AuroraBackend backend);
+ bool create_renderer();

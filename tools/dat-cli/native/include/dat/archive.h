@@ -71,6 +71,10 @@ int dat_load_roots(DatArchive* archive, const char* file, uint32_t index);
 /// everything it reaches; `NULL` if there is none.
 void* dat_public(DatArchive* archive, const char* name, int32_t type);
 
+/// The public symbol `name` as the type its root has in the file
+/// dat_load_roots() loaded; `NULL` if there is no such root.
+void* dat_public_root(DatArchive* archive, const char* name);
+
 /// The object at `offset` as `count` of type `type`.
 void* dat_at(DatArchive* archive, uint32_t offset, int32_t type,
              DatCount count, uint64_t n);
@@ -90,6 +94,10 @@ void dat_trace(const DatArchive* archive, FILE* out, unsigned what);
 /// back natively. Returns the number of mismatches, writing each to `out`
 /// if given.
 size_t dat_verify(const DatArchive* archive, FILE* out);
+
+/// The index of a type by its name as the game's headers write it
+/// (`FigaTree`), or `DAT_NONE`.
+int32_t dat_type_by_name(const DatSchema* schema, const char* name);
 
 /// The index of a type by its trace id, or `DAT_NONE`.
 int32_t dat_type_by_id(const DatSchema* schema, uint32_t id);

@@ -1266,12 +1266,18 @@ HSD_GObj* mn_80230E38(int arg0)
     return gobj;
 }
 
-int mn_80231634(struct mn_80231634_t* arg0)
+intptr_t mn_80231634(struct mn_80231634_t* arg0)
 {
     if (arg0 == NULL) {
         return 0;
     }
+#ifdef TARGET_PC
+    // arg0 is an HSD_JObj and +0x10 is its child, which moves with 64-bit
+    // pointers
+    return (intptr_t) ((HSD_JObj*) arg0)->child;
+#else
     return arg0->x10;
+#endif
 }
 
 void mn_8023164C(void)

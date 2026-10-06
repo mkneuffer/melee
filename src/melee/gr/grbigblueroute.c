@@ -1044,9 +1044,15 @@ void grBigBlueRoute_8020CD20(Ground_GObj* gobj)
         }
 
         i++;
+#ifdef TARGET_PC
+        // grBigBlueRoute_8020DA9C reads the JObj's next sibling at +8, which
+        // moves with 64-bit pointers
+        jobj = (jobj != NULL) ? jobj->next : NULL;
+#else
         jobj = (jobj != NULL) ? (HSD_JObj*) grBigBlueRoute_8020DA9C(
                                     (struct grBigBlueRoute_8020DA9C_t*) jobj)
                               : NULL;
+#endif
     } while (i < 31);
 }
 #undef RE_ENTRY

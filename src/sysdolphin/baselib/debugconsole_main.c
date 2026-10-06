@@ -764,6 +764,7 @@ void hsd_80394668(void)
 
 void hsd_80394950(OSContext* ctx)
 {
+#ifndef TARGET_PC // reads the PowerPC registers, which the port has none of
     OSContext tmp;
     int i;
     int j;
@@ -804,23 +805,27 @@ void hsd_80394950(OSContext* ctx)
     OSClearContext(&tmp);
     OSSetCurrentContext(saved);
     OSRestoreInterrupts(irq);
+#endif
 }
 
 /// @todo unused function to force data ordering for these report strings
 #ifdef MUST_MATCH
 static void unused(OSContext* ctx)
 {
+#ifndef TARGET_PC // reads the PowerPC registers, which the port has none of
     OSReport("- MISC ----------------------------------------------\n");
     OSReport("SRR0=%08X SRR1=%08X\n", ctx->srr0, ctx->srr1);
     OSReport("CR  =%08X LR  =%08X\n", ctx->cr, ctx->lr);
     OSReport("CTR =%08X XER =%08X\n", ctx->ctr, ctx->xer);
     OSReport("FPSCR=%08X\n", ctx->fpscr);
     OSReport("GQR%d=%08X GQR%d=%08X\n", 0, ctx->gqr[0], 1, ctx->gqr[1]);
+#endif
 }
 #endif
 
 void Exception_ReportStackTrace(OSContext* ctx, int max_depth)
 {
+#ifndef TARGET_PC // reads the PowerPC registers, which the port has none of
     u32 i;
     StackFrame* frame;
 
@@ -842,10 +847,12 @@ void Exception_ReportStackTrace(OSContext* ctx, int max_depth)
                  frame->saved_lr);
         frame = frame->back_chain;
     }
+#endif
 }
 
 void Exception_ReportCodeline(u16 error, int dsisr, int dar, OSContext* ctx)
 {
+#ifndef TARGET_PC // reads the PowerPC registers, which the port has none of
     char* exception_type;
     char* around_or_at;
     int srr1;
@@ -954,6 +961,7 @@ void Exception_ReportCodeline(u16 error, int dsisr, int dar, OSContext* ctx)
         OSReport("(UNKNOWN)\n");
         break;
     }
+#endif
 }
 
 void fn_80394DF4(void* node_ptr)
@@ -1525,6 +1533,7 @@ static inline void ps_clear_nodes(struct ParticleScreenState* sp)
 
 static inline void hsd_80395D88_dump_gpr(OSContext* ctx)
 {
+#ifndef TARGET_PC // reads the PowerPC registers, which the port has none of
     int i;
 
     OSReport("- GPR -----------------------------------------------\n");
@@ -1535,10 +1544,12 @@ static inline void hsd_80395D88_dump_gpr(OSContext* ctx)
                  ctx->gpr[i + 0x10]);
         i++;
     } while (i < 0x10);
+#endif
 }
 
 static inline void hsd_80395D88_dump_misc(OSContext* ctx)
 {
+#ifndef TARGET_PC // reads the PowerPC registers, which the port has none of
     int i;
 
     OSReport("- MISC ----------------------------------------------\n");
@@ -1555,6 +1566,7 @@ static inline void hsd_80395D88_dump_misc(OSContext* ctx)
                  ((u32*) ctx)[0x1B4 / 4 + i]);
         i++;
     } while (i < 4);
+#endif
 }
 
 bool hsd_80395D88(void* data)
